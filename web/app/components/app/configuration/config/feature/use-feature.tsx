@@ -7,6 +7,16 @@ function useFeature({
   setMoreLikeThis,
   suggestedQuestionsAfterAnswer,
   setSuggestedQuestionsAfterAnswer,
+  speechToText,
+  setSpeechToText,
+  textToSpeech,
+  setTextToSpeech,
+  citation,
+  setCitation,
+  annotation,
+  setAnnotation,
+  moderation,
+  setModeration,
 }: {
   introduction: string
   setIntroduction: (introduction: string) => void
@@ -14,13 +24,22 @@ function useFeature({
   setMoreLikeThis: (moreLikeThis: boolean) => void
   suggestedQuestionsAfterAnswer: boolean
   setSuggestedQuestionsAfterAnswer: (suggestedQuestionsAfterAnswer: boolean) => void
+  speechToText: boolean
+  setSpeechToText: (speechToText: boolean) => void
+  textToSpeech: boolean
+  setTextToSpeech: (textToSpeech: boolean) => void
+  citation: boolean
+  setCitation: (citation: boolean) => void
+  annotation: boolean
+  setAnnotation: (annotation: boolean) => void
+  moderation: boolean
+  setModeration: (moderation: boolean) => void
 }) {
-  const [tempshowOpeningStatement, setTempShowOpeningStatement] = React.useState(!!introduction)
+  const [tempShowOpeningStatement, setTempShowOpeningStatement] = React.useState(!!introduction)
   useEffect(() => {
     // wait to api data back
-    if (!!introduction) {
+    if (introduction)
       setTempShowOpeningStatement(true)
-    }
   }, [introduction])
 
   // const [tempMoreLikeThis, setTempMoreLikeThis] = React.useState(moreLikeThis)
@@ -29,16 +48,21 @@ function useFeature({
   // }, [moreLikeThis])
 
   const featureConfig = {
-    openingStatement: tempshowOpeningStatement,
-    moreLikeThis: moreLikeThis,
-    suggestedQuestionsAfterAnswer: suggestedQuestionsAfterAnswer
+    openingStatement: tempShowOpeningStatement,
+    moreLikeThis,
+    suggestedQuestionsAfterAnswer,
+    speechToText,
+    textToSpeech,
+    citation,
+    annotation,
+    moderation,
   }
   const handleFeatureChange = (key: string, value: boolean) => {
     switch (key) {
       case 'openingStatement':
-        if (!value) {
+        if (!value)
           setIntroduction('')
-        }
+
         setTempShowOpeningStatement(value)
         break
       case 'moreLikeThis':
@@ -47,11 +71,25 @@ function useFeature({
       case 'suggestedQuestionsAfterAnswer':
         setSuggestedQuestionsAfterAnswer(value)
         break
+      case 'speechToText':
+        setSpeechToText(value)
+        break
+      case 'textToSpeech':
+        setTextToSpeech(value)
+        break
+      case 'citation':
+        setCitation(value)
+        break
+      case 'annotation':
+        setAnnotation(value)
+        break
+      case 'moderation':
+        setModeration(value)
     }
   }
   return {
     featureConfig,
-    handleFeatureChange
+    handleFeatureChange,
   }
 }
 

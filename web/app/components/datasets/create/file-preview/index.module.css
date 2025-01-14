@@ -1,6 +1,6 @@
 .filePreview {
     @apply flex flex-col border-l border-gray-200 shrink-0;
-    width: 528px;
+    width: 100%;
     background-color: #fcfcfd;
   }
   
@@ -11,6 +11,9 @@
   }
   
   .previewHeader .title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     color: #101828;
     font-weight: 600;
     font-size: 18px;
@@ -45,5 +48,6 @@
   }
   .fileContent {
     white-space: pre-line;
+    word-break: break-all;
   }
   
