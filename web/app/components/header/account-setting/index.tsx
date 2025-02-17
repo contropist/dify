@@ -1,102 +1,176 @@
 'use client'
 import { useTranslation } from 'react-i18next'
-import { useState } from 'react'
-import { AtSymbolIcon, GlobeAltIcon, UserIcon, XMarkIcon, CubeTransparentIcon, UsersIcon } from '@heroicons/react/24/outline'
-import { GlobeAltIcon as GlobalAltIconSolid, UserIcon as UserIconSolid, UsersIcon as UsersIconSolid } from '@heroicons/react/24/solid'
-import AccountPage from './account-page'
+import { useEffect, useRef, useState } from 'react'
+import {
+  RiBrain2Fill,
+  RiBrain2Line,
+  RiCloseLine,
+  RiColorFilterFill,
+  RiColorFilterLine,
+  RiDatabase2Fill,
+  RiDatabase2Line,
+  RiGroup2Fill,
+  RiGroup2Line,
+  RiMoneyDollarCircleFill,
+  RiMoneyDollarCircleLine,
+  RiPuzzle2Fill,
+  RiPuzzle2Line,
+  RiTranslate2,
+} from '@remixicon/react'
+import Button from '../../base/button'
 import MembersPage from './members-page'
-import IntegrationsPage from './Integrations-page'
 import LanguagePage from './language-page'
-import ProviderPage from './provider-page'
-import s from './index.module.css'
-import Modal from '@/app/components/base/modal'
+import ApiBasedExtensionPage from './api-based-extension-page'
+import DataSourcePage from './data-source-page'
+import ModelProviderPage from './model-provider-page'
+import cn from '@/utils/classnames'
+import BillingPage from '@/app/components/billing/billing-page'
+import CustomPage from '@/app/components/custom/custom-page'
+import useBreakpoints, { MediaType } from '@/hooks/use-breakpoints'
+import { useProviderContext } from '@/context/provider-context'
+import { useAppContext } from '@/context/app-context'
+import MenuDialog from '@/app/components/header/account-setting/menu-dialog'
+import Input from '@/app/components/base/input'
 
 const iconClassName = `
-  w-[18px] h-[18px] ml-3 mr-2
+  w-5 h-5 mr-2
 `
 
 type IAccountSettingProps = {
   onCancel: () => void
   activeTab?: string
 }
+
+type GroupItem = {
+  key: string
+  name: string
+  description?: string
+  icon: JSX.Element
+  activeIcon: JSX.Element
+}
+
 export default function AccountSetting({
   onCancel,
-  activeTab = 'account',
+  activeTab = 'members',
 }: IAccountSettingProps) {
   const [activeMenu, setActiveMenu] = useState(activeTab)
   const { t } = useTranslation()
+  const { enableBilling, enableReplaceWebAppLogo } = useProviderContext()
+  const { isCurrentWorkspaceDatasetOperator } = useAppContext()
+
+  const workplaceGroupItems = (() => {
+    if (isCurrentWorkspaceDatasetOperator)
+      return []
+    return [
+      {
+        key: 'provider',
+        name: t('common.settings.provider'),
+        icon: <RiBrain2Line className={iconClassName} />,
+        activeIcon: <RiBrain2Fill className={iconClassName} />,
+      },
+      {
+        key: 'members',
+        name: t('common.settings.members'),
+        icon: <RiGroup2Line className={iconClassName} />,
+        activeIcon: <RiGroup2Fill className={iconClassName} />,
+      },
+      {
+        // Use key false to hide this item
+        key: enableBilling ? 'billing' : false,
+        name: t('common.settings.billing'),
+        description: t('billing.plansCommon.receiptInfo'),
+        icon: <RiMoneyDollarCircleLine className={iconClassName} />,
+        activeIcon: <RiMoneyDollarCircleFill className={iconClassName} />,
+      },
+      {
+        key: 'data-source',
+        name: t('common.settings.dataSource'),
+        icon: <RiDatabase2Line className={iconClassName} />,
+        activeIcon: <RiDatabase2Fill className={iconClassName} />,
+      },
+      {
+        key: 'api-based-extension',
+        name: t('common.settings.apiBasedExtension'),
+        icon: <RiPuzzle2Line className={iconClassName} />,
+        activeIcon: <RiPuzzle2Fill className={iconClassName} />,
+      },
+      {
+        key: (enableReplaceWebAppLogo || enableBilling) ? 'custom' : false,
+        name: t('custom.custom'),
+        icon: <RiColorFilterLine className={iconClassName} />,
+        activeIcon: <RiColorFilterFill className={iconClassName} />,
+      },
+    ].filter(item => !!item.key) as GroupItem[]
+  })()
+
+  const media = useBreakpoints()
+  const isMobile = media === MediaType.mobile
+
   const menuItems = [
-    {
-      key: 'account-group',
-      name: t('common.settings.accountGroup'),
-      items: [
-        {
-          key: 'account',
-          name: t('common.settings.account'),
-          icon: <UserIcon className={iconClassName} />,
-          activeIcon: <UserIconSolid className={iconClassName} />,
-        },
-        {
-          key: 'integrations',
-          name: t('common.settings.integrations'),
-          icon: <AtSymbolIcon className={iconClassName} />,
-          activeIcon: <AtSymbolIcon className={iconClassName} />,
-        },
-        {
-          key: 'language',
-          name: t('common.settings.language'),
-          icon: <GlobeAltIcon className={iconClassName} />,
-          activeIcon: <GlobalAltIconSolid className={iconClassName} />,
-        },
-      ]
-    },
     {
       key: 'workspace-group',
       name: t('common.settings.workplaceGroup'),
+      items: workplaceGroupItems,
+    },
+    {
+      key: 'account-group',
+      name: t('common.settings.generalGroup'),
       items: [
         {
-          key: 'members',
-          name: t('common.settings.members'),
-          icon: <UsersIcon className={iconClassName} />,
-          activeIcon: <UsersIconSolid className={iconClassName} />,
+          key: 'language',
+          name: t('common.settings.language'),
+          icon: <RiTranslate2 className={iconClassName} />,
+          activeIcon: <RiTranslate2 className={iconClassName} />,
         },
-        {
-          key: 'provider',
-          name: t('common.settings.provider'),
-          icon: <CubeTransparentIcon className={iconClassName} />,
-          activeIcon: <CubeTransparentIcon className={iconClassName} />,
-        },
-      ]
-    }
+      ],
+    },
   ]
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [scrolled, setScrolled] = useState(false)
+  useEffect(() => {
+    const targetElement = scrollRef.current
+    const scrollHandle = (e: Event) => {
+      const userScrolled = (e.target as HTMLDivElement).scrollTop > 0
+      setScrolled(userScrolled)
+    }
+    targetElement?.addEventListener('scroll', scrollHandle)
+    return () => {
+      targetElement?.removeEventListener('scroll', scrollHandle)
+    }
+  }, [])
+
+  const activeItem = [...menuItems[0].items, ...menuItems[1].items].find(item => item.key === activeMenu)
+
+  const [searchValue, setSearchValue] = useState<string>('')
 
   return (
-    <Modal
-      isShow
-      onClose={() => { }}
-      className={s.modal}
-      wrapperClassName='pt-[60px]'
+    <MenuDialog
+      show
+      onClose={onCancel}
     >
-      <div className='flex'>
-        <div className='w-[200px] p-4 border border-gray-100'>
-          <div className='mb-8 ml-2 text-base font-medium leading-6 text-gray-900'>{t('common.userProfile.settings')}</div>
-          <div>
+      <div className='mx-auto max-w-[1048px] h-[100vh] flex'>
+        <div className='w-[44px] sm:w-[224px] pl-4 pr-6 border-r border-divider-burn flex flex-col'>
+          <div className='mt-6 mb-8 px-3 py-2 text-text-primary title-2xl-semi-bold'>{t('common.userProfile.settings')}</div>
+          <div className='w-full'>
             {
               menuItems.map(menuItem => (
-                <div key={menuItem.key} className='mb-4'>
-                  <div className='px-2 mb-[6px] text-xs font-medium text-gray-500'>{menuItem.name}</div>
+                <div key={menuItem.key} className='mb-2'>
+                  {!isCurrentWorkspaceDatasetOperator && (
+                    <div className='py-2 pl-3 pb-1 mb-0.5 system-xs-medium-uppercase text-text-tertiary'>{menuItem.name}</div>
+                  )}
                   <div>
                     {
                       menuItem.items.map(item => (
                         <div
                           key={item.key}
-                          className={`
-                            flex items-center h-[37px] mb-[2px] text-sm cursor-pointer rounded-lg
-                            ${activeMenu === item.key ? 'font-semibold text-primary-600 bg-primary-50' : 'font-light text-gray-700'}
-                          `}
+                          className={cn(
+                            'flex items-center mb-0.5 p-1 pl-3 h-[37px] text-sm cursor-pointer rounded-lg',
+                            activeMenu === item.key ? 'bg-state-base-active text-components-menu-item-text-active system-sm-semibold' : 'text-components-menu-item-text system-sm-medium')}
+                          title={item.name}
                           onClick={() => setActiveMenu(item.key)}
                         >
-                          {activeMenu === item.key ? item.activeIcon : item.icon}{item.name}
+                          {activeMenu === item.key ? item.activeIcon : item.icon}
+                          {!isMobile && <div className='truncate'>{item.name}</div>}
                         </div>
                       ))
                     }
@@ -106,28 +180,50 @@ export default function AccountSetting({
             }
           </div>
         </div>
-        <div className='w-[520px] h-[580px] px-6 py-4 overflow-y-auto'>
-          <div className='flex items-center justify-between h-6 mb-8 text-base font-medium text-gray-900 '>
-            {[...menuItems[0].items, ...menuItems[1].items].find(item => item.key === activeMenu)?.name}
-            <XMarkIcon className='w-4 h-4 cursor-pointer' onClick={onCancel} />
+        <div className='relative flex w-[824px]'>
+          <div className='absolute top-6 -right-11 flex flex-col items-center z-[9999]'>
+            <Button
+              variant='tertiary'
+              size='large'
+              className='px-2'
+              onClick={onCancel}
+            >
+              <RiCloseLine className='w-5 h-5' />
+            </Button>
+            <div className='mt-1 text-text-tertiary system-2xs-medium-uppercase'>ESC</div>
           </div>
-          {
-            activeMenu === 'account' && <AccountPage />
-          }
-          {
-            activeMenu === 'members' && <MembersPage />
-          }
-          {
-            activeMenu === 'integrations' && <IntegrationsPage />
-          }
-          {
-            activeMenu === 'language' && <LanguagePage />
-          }
-          {
-            activeMenu === 'provider' && <ProviderPage />
-          }
+          <div ref={scrollRef} className='w-full pb-4 bg-components-panel-bg overflow-y-auto'>
+            <div className={cn('sticky top-0 mx-8 pt-[27px] pb-2 mb-[18px] flex items-center bg-components-panel-bg z-20', scrolled && 'border-b border-divider-regular')}>
+              <div className='shrink-0 text-text-primary title-2xl-semi-bold'>{activeItem?.name}</div>
+              {
+                activeItem?.description && (
+                  <div className='shrink-0 ml-2 text-xs text-text-tertiary'>{activeItem?.description}</div>
+                )
+              }
+              {activeItem?.key === 'provider' && (
+                <div className='grow flex justify-end'>
+                  <Input
+                    showLeftIcon
+                    wrapperClassName='!w-[200px]'
+                    className='!h-8 !text-[13px]'
+                    onChange={e => setSearchValue(e.target.value)}
+                    value={searchValue}
+                  />
+                </div>
+              )}
+            </div>
+            <div className='px-4 sm:px-8 pt-2'>
+              {activeMenu === 'provider' && <ModelProviderPage searchText={searchValue} />}
+              {activeMenu === 'members' && <MembersPage />}
+              {activeMenu === 'billing' && <BillingPage />}
+              {activeMenu === 'data-source' && <DataSourcePage />}
+              {activeMenu === 'api-based-extension' && <ApiBasedExtensionPage />}
+              {activeMenu === 'custom' && <CustomPage />}
+              {activeMenu === 'language' && <LanguagePage />}
+            </div>
+          </div>
         </div>
       </div>
-    </Modal>
+    </MenuDialog>
   )
 }

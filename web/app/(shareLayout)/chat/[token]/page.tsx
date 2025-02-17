@@ -1,15 +1,10 @@
-import type { FC } from 'react'
+'use client'
 import React from 'react'
+import ChatWithHistoryWrap from '@/app/components/base/chat/chat-with-history'
 
-import type { IMainProps } from '@/app/components/share/chat'
-import Main from '@/app/components/share/chat'
-
-const Chat: FC<IMainProps> = ({
-  params,
-}: any) => {
-
+const Chat = () => {
   return (
-    <Main params={params} />
+    <ChatWithHistoryWrap />
   )
 }
 

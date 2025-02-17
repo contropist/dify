@@ -3,20 +3,24 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { useSelectedLayoutSegment } from 'next/navigation'
-import classNames from 'classnames'
-import { ArrowLeftIcon } from '@heroicons/react/24/solid'
 import type { INavSelectorProps } from './nav-selector'
 import NavSelector from './nav-selector'
+import classNames from '@/utils/classnames'
+import { ArrowNarrowLeft } from '@/app/components/base/icons/src/vender/line/arrows'
+import { useStore as useAppStore } from '@/app/components/app/store'
 
 type INavProps = {
   icon: React.ReactNode
+  activeIcon?: React.ReactNode
   text: string
   activeSegment: string | string[]
   link: string
+  isApp: boolean
 } & INavSelectorProps
 
 const Nav = ({
   icon,
+  activeIcon,
   text,
   activeSegment,
   link,
@@ -24,44 +28,54 @@ const Nav = ({
   navs,
   createText,
   onCreate,
+  onLoadmore,
+  isApp,
 }: INavProps) => {
+  const setAppDetail = useAppStore(state => state.setAppDetail)
   const [hovered, setHovered] = useState(false)
   const segment = useSelectedLayoutSegment()
-  const isActived = Array.isArray(activeSegment) ? activeSegment.includes(segment!) : segment === activeSegment
+  const isActivated = Array.isArray(activeSegment) ? activeSegment.includes(segment!) : segment === activeSegment
 
   return (
     <div className={`
-      flex items-center h-8 mr-3 px-0.5  rounded-xl text-[14px] shrink-0
-      ${isActived && 'bg-white shadow-[0_2px_5px_-1px_rgba(0,0,0,0.05),0_2px_4px_-2px_rgba(0,0,0,0.05)]'}
+      flex items-center h-8 mr-0 sm:mr-3 px-0.5 rounded-xl text-sm shrink-0 font-medium
+      ${isActivated && 'bg-components-main-nav-nav-button-bg-active shadow-md font-semibold'}
+      ${!curNav && !isActivated && 'hover:bg-components-main-nav-nav-button-bg-hover'}
     `}>
       <Link href={link}>
         <div
+          onClick={() => setAppDetail()}
           className={classNames(`
-            flex items-center h-8 pl-2.5 pr-2
-            font-semibold cursor-pointer rounded-[10px]
-            ${isActived ? 'text-[#1C64F2]' : 'text-gray-500 hover:bg-gray-200'}
-            ${curNav && isActived && 'hover:bg-[#EBF5FF]'}
+            flex items-center h-7 px-2.5 cursor-pointer rounded-[10px]
+            ${isActivated ? 'text-components-main-nav-nav-button-text-active' : 'text-components-main-nav-nav-button-text'}
+            ${curNav && isActivated && 'hover:bg-components-main-nav-nav-button-bg-active-hover'}
           `)}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
         >
-          {
-            (hovered && curNav && isActived)
-              ? <ArrowLeftIcon className='mr-1 w-[18px] h-[18px]' />
-              : icon
-          }
+          <div className='mr-2'>
+            {
+              (hovered && curNav)
+                ? <ArrowNarrowLeft className='w-4 h-4' />
+                : isActivated
+                  ? activeIcon
+                  : icon
+            }
+          </div>
           {text}
         </div>
       </Link>
       {
-        curNav && isActived && (
+        curNav && isActivated && (
           <>
-            <div className='font-light text-gray-300 '>/</div>
+            <div className='font-light text-divider-deep'>/</div>
             <NavSelector
+              isApp={isApp}
               curNav={curNav}
               navs={navs}
               createText={createText}
               onCreate={onCreate}
+              onLoadmore={onLoadmore}
             />
           </>
         )

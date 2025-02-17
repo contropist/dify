@@ -3,47 +3,44 @@ import type { FC } from 'react'
 import React from 'react'
 import { useContext } from 'use-context-selector'
 import produce from 'immer'
-import AddFeatureBtn from './feature/add-feature-btn'
-import ChooseFeature from './feature/choose-feature'
-import useFeature from './feature/use-feature'
-import ConfigContext from '@/context/debug-configuration'
+import { useFormattingChangedDispatcher } from '../debug/hooks'
 import DatasetConfig from '../dataset-config'
-import ChatGroup from '../features/chat-group'
-import ExperienceEnchanceGroup from '../features/experience-enchance-group'
-import Toolbox from '../toolbox'
+import HistoryPanel from '../config-prompt/conversation-history/history-panel'
+import ConfigVision from '../config-vision'
+import ConfigDocument from './config-document'
+import AgentTools from './agent/agent-tools'
+import ConfigContext from '@/context/debug-configuration'
 import ConfigPrompt from '@/app/components/app/configuration/config-prompt'
 import ConfigVar from '@/app/components/app/configuration/config-var'
-import type { PromptVariable } from '@/models/debug'
-import { AppType } from '@/types/app'
-import { useBoolean } from 'ahooks'
+import type { ModelConfig, PromptVariable } from '@/models/debug'
+import type { AppType } from '@/types/app'
+import { ModelModeType } from '@/types/app'
 
 const Config: FC = () => {
   const {
     mode,
-    introduction,
-    setIntroduction,
+    isAdvancedMode,
+    modelModeType,
+    isAgent,
+    hasSetBlockStatus,
+    showHistoryModal,
     modelConfig,
     setModelConfig,
     setPrevPromptConfig,
-    setFormattingChanged,
-    moreLikeThisConifg,
-    setMoreLikeThisConifg,
-    suggestedQuestionsAfterAnswerConfig,
-    setSuggestedQuestionsAfterAnswerConfig
   } = useContext(ConfigContext)
-  const isChatApp = mode === AppType.chat
+  const isChatApp = ['advanced-chat', 'agent-chat', 'chat'].includes(mode)
+  const formattingChangedDispatcher = useFormattingChangedDispatcher()
 
   const promptTemplate = modelConfig.configs.prompt_template
   const promptVariables = modelConfig.configs.prompt_variables
+  // simple mode
   const handlePromptChange = (newTemplate: string, newVariables: PromptVariable[]) => {
-    const newModelConfig = produce(modelConfig, (draft) => {
+    const newModelConfig = produce(modelConfig, (draft: ModelConfig) => {
       draft.configs.prompt_template = newTemplate
       draft.configs.prompt_variables = [...draft.configs.prompt_variables, ...newVariables]
     })
-
-    if (modelConfig.configs.prompt_template !== newTemplate) {
-      setFormattingChanged(true)
-    }
+    if (modelConfig.configs.prompt_template !== newTemplate)
+      formattingChangedDispatcher()
 
     setPrevPromptConfig(modelConfig.configs)
     setModelConfig(newModelConfig)
@@ -51,55 +48,17 @@ const Config: FC = () => {
 
   const handlePromptVariablesNameChange = (newVariables: PromptVariable[]) => {
     setPrevPromptConfig(modelConfig.configs)
-    const newModelConfig = produce(modelConfig, (draft) => {
+    const newModelConfig = produce(modelConfig, (draft: ModelConfig) => {
       draft.configs.prompt_variables = newVariables
     })
     setModelConfig(newModelConfig)
   }
 
-  const [showChooseFeature, {
-    setTrue: showChooseFeatureTrue,
-    setFalse: showChooseFeatureFalse
-  }] = useBoolean(false)
-  const { featureConfig, handleFeatureChange } = useFeature({
-    introduction,
-    setIntroduction,
-    moreLikeThis: moreLikeThisConifg.enabled,
-    setMoreLikeThis: (value) => {
-      setMoreLikeThisConifg(produce(moreLikeThisConifg, (draft) => {
-        draft.enabled = value
-      }))
-    },
-    suggestedQuestionsAfterAnswer: suggestedQuestionsAfterAnswerConfig.enabled,
-    setSuggestedQuestionsAfterAnswer: (value) => {
-      setSuggestedQuestionsAfterAnswerConfig(produce(suggestedQuestionsAfterAnswerConfig, (draft) => {
-        draft.enabled = value
-      }))
-    },
-  })
-
-  const hasChatConfig = isChatApp && (featureConfig.openingStatement || featureConfig.suggestedQuestionsAfterAnswer)
-  const hasToolbox = false
-
   return (
     <>
-      <div className="pb-[20px]">
-        <div className='flex justify-between items-center mb-4'>
-          <AddFeatureBtn onClick={showChooseFeatureTrue} />
-          <div>
-            {/* AutoMatic */}
-          </div>
-        </div>
-
-        {showChooseFeature && (
-          <ChooseFeature
-            isShow={showChooseFeature}
-            onClose={showChooseFeatureFalse}
-            isChatApp={isChatApp}
-            config={featureConfig}
-            onChange={handleFeatureChange}
-          />
-        )}
+      <div
+        className="grow h-0 relative px-6 pb-[50px] overflow-y-auto"
+      >
         {/* Template */}
         <ConfigPrompt
           mode={mode as AppType}
@@ -117,35 +76,22 @@ const Config: FC = () => {
         {/* Dataset */}
         <DatasetConfig />
 
-        {/* ChatConifig */}
-        {
-          hasChatConfig && (
-            <ChatGroup
-              isShowOpeningStatement={featureConfig.openingStatement}
-              openingStatementConfig={
-                {
-                  promptTemplate,
-                  value: introduction,
-                  onChange: setIntroduction
-                }
-              }
-              isShowSuggestedQuestionsAfterAnswer={featureConfig.suggestedQuestionsAfterAnswer}
-            />
-          )
-        }
-
-        {/* TextnGeneration config */}
-        {moreLikeThisConifg.enabled && (
-          <ExperienceEnchanceGroup />
+        {/* Tools */}
+        {isAgent && (
+          <AgentTools />
         )}
 
+        <ConfigVision />
 
-        {/* Toolbox */}
-        {
-          hasToolbox && (
-            <Toolbox searchToolConfig={false} sensitiveWordAvoidanceConifg={false} />
-          )
-        }
+        <ConfigDocument />
+
+        {/* Chat History */}
+        {isAdvancedMode && isChatApp && modelModeType === ModelModeType.completion && (
+          <HistoryPanel
+            showWarning={!hasSetBlockStatus.history}
+            onShowEditModal={showHistoryModal}
+          />
+        )}
       </div>
     </>
   )
